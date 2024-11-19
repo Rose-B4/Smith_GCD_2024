@@ -170,7 +170,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.62186956, g: 0, b: 1, a: 1}
+  m_Color: {r: 0.6117647, g: 0.24313726, b: 0.3529412, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -267,10 +267,13 @@ MonoBehaviour:
   walkSpeed: 4.5
   walkAcceleration: 1
   jumpPower: 22
+  wallJumpPower: 18
+  wallJumpPushBack: 10
   maxFallSpeed: 20
   gravity: 1
   jumpNotHeldModifier: 3
   halfGravityVelocity: 2.5
+  maxWallSlideVelocity: 2
   numDashes: 1
   dashVelocity: 15
   dashStartPause: 3
@@ -278,7 +281,8 @@ MonoBehaviour:
   timeBetweenDashes: 30
   coyoteTime: 8
   inputBufferFrames: 5
+  distanceToWallJump: 0.5
   stickDeadZone: 0.1
-  jumpParticle: {fileID: 0}
+  jumpParticle: {fileID: 8253412017663591503, guid: 0a3441ec61b5e23469280818f9884983, type: 3}
   attackObject: {fileID: 469389493263449764, guid: 0be4ab002d1c94a4ab94a79e75954d3d, type: 3}
   velocity: {x: 0, y: 0}

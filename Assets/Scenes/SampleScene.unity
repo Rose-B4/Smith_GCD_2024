@@ -2771,34 +2771,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 554226676151101656, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: orthographic size
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2957357005852747389, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: attackObject
-      value: 
-      objectReference: {fileID: 469389493263449764, guid: 0be4ab002d1c94a4ab94a79e75954d3d, type: 3}
-    - target: {fileID: 2957357005852747389, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: jumpParticle
-      value: 
-      objectReference: {fileID: 8253412017663591503, guid: 0a3441ec61b5e23469280818f9884983, type: 3}
-    - target: {fileID: 2957357005852747389, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: walkParticle
-      value: 
-      objectReference: {fileID: 8253412017663591503, guid: 8af9675cedb63324f9fc1ad108e5e412, type: 3}
-    - target: {fileID: 4893391157707744550, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: m_Color.b
-      value: 0.3529412
-      objectReference: {fileID: 0}
-    - target: {fileID: 4893391157707744550, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: m_Color.g
-      value: 0.24313726
-      objectReference: {fileID: 0}
-    - target: {fileID: 4893391157707744550, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
-      propertyPath: m_Color.r
-      value: 0.6117647
-      objectReference: {fileID: 0}
     - target: {fileID: 5795241793408257051, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
       propertyPath: m_Name
       value: Player

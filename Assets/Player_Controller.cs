@@ -27,6 +27,8 @@ public class Player_Controller : MonoBehaviour
 	protected RaycastHit2D rayToRightWall;
 	protected float distanceToGround;
 	protected float distanceToCeiling;
+	protected float distanceToLeftWall;
+	protected float distanceToRightWall;
 	//---------------------------------------------------------------
 
 	// components----------------------------------------------------
@@ -44,6 +46,10 @@ public class Player_Controller : MonoBehaviour
 	[Header("Jump & Gravity")]
 		[Tooltip("The upwards force that is applied to the player when they jump, bigger number means higher jump")]
 		[SerializeField] protected float jumpPower = 22;
+		[Tooltip("The upwards force that is applied to the player when they wall jump, bigger number means higher jump")]
+		[SerializeField] protected float wallJumpPower = 18;
+		[Tooltip("The horizontal force that is applied to the player when they wall jump, bigger number means they are pushed farther off the wall")]
+		[SerializeField] protected float wallJumpPushBack = 18;
 		[Tooltip("The maximum downwards velocity the player can have while falling, bigger number means falling faster")]
 		[SerializeField] protected float maxFallSpeed = 20;
 		[Tooltip("The downwards force that is applied to the player each frame they are in the air, bigger number means they accelerate downwards faster")]
@@ -52,6 +58,8 @@ public class Player_Controller : MonoBehaviour
 		[SerializeField] protected float jumpNotHeldModifier = 3;
 		[Tooltip("The range (from positive to negative) of Y velocities where the gravity is halved at the peak of the player's jump, bigger number means they are floatier at the peak of their jump")]
 		[SerializeField] [Range(0,5)] float halfGravityVelocity = 2.5f;
+		[Tooltip("The maximum speed the player will fall at when they are sliding down a wall, bigger number means falling faster")]
+		[SerializeField] float maxWallSlideVelocity = 0.5f; 
 	[Header("Dash")]
 		[Tooltip("The number of dashes the player gets while in mid air")]
 		[SerializeField] [Range(0,5)] protected int numDashes = 1;
@@ -68,6 +76,8 @@ public class Player_Controller : MonoBehaviour
 		[SerializeField] [Range(0,20)] protected int coyoteTime = 5;
 		[Tooltip("The number of frames that the game will store an input before the action can be executed, bigger number means they can push a button earlier than it is registered")]
 		[SerializeField] [Range(0,20)] protected int inputBufferFrames = 5;
+		[Tooltip("The distance away from the wall that the player can be and still wall jump, bigger number means they can wall jump from farther away")]
+		[SerializeField] [Range(0,2)] protected float distanceToWallJump = 0.5f;
 		[Tooltip("The dead zone for a joystick if a player is using a controller, bigger number means larger dead zone")]
 		[SerializeField] [Range(0,0.5f)] protected float stickDeadZone = 0.01f;
 	[Header("Misc")]
@@ -79,7 +89,8 @@ public class Player_Controller : MonoBehaviour
 	protected int remainingCoyoteTime;
 	protected int remainingDashes;
 	protected int timeSinceLastDash = 60;
-	protected float fallSpeed;
+	protected float downwardsAcceleration;
+	protected float targetFallSpeed;
 	protected bool isGrounded;
 	protected bool canJump;
 	protected bool currentlyDashing;
@@ -109,6 +120,7 @@ public class Player_Controller : MonoBehaviour
 	// Update is called once per frame
 	void Update() {
 		GetInput(); // this MUST come first in the list since it dictates everything that will happen below
+		RayCast();
 		ProcessJump();
 		ProcessGravity();
 		ProcessMovement();
@@ -167,14 +179,13 @@ public class Player_Controller : MonoBehaviour
 		remainingCoyoteTime --;
 		canJump = isGrounded || (remainingCoyoteTime > 0); // if the player is grounded or has remaining coyote time, they can jump
 
-		if(!canJump && frameInput.JumpDown) {
+		if(frameInput.JumpDown && (!canJump || (distanceToLeftWall > distanceToWallJump && distanceToRightWall > distanceToWallJump))) {
 			bufferedInputs.Add(new BufferedInput{InputType = "jump", FramesUntilDropped = inputBufferFrames}); // add a jump to the input buffer
 		}
 
 		for(int i = 0; i < bufferedInputs.Count; i++){ // go through each input in the buffer
-			if(bufferedInputs[i].InputType.Equals("jump") && canJump) { // if there is a jump input buffered and the player can jump this frame
+			if(bufferedInputs[i].InputType.Equals("jump")) { // if there is a jump input buffered and the player can jump this frame
 				frameInput.JumpDown = true; // make the player input jump
-				bufferedInputs[i] = new BufferedInput{FramesUntilDropped = -1}; //replace this buffered input with one that will be cleared at the end of the frame
 			}
 		}
 
@@ -183,15 +194,40 @@ public class Player_Controller : MonoBehaviour
 		if(canJump) {
 			Jump();
 		}
+		else if(rayToLeftWall.distance < distanceToWallJump && rayToRightWall.distance < distanceToWallJump) {
+			WallJump(0);
+		}
+		else if(rayToLeftWall.distance < distanceToWallJump) {
+			WallJump(1);
+		}
+		else if(rayToRightWall.distance < distanceToWallJump) {
+			WallJump(-1);
+		}
+	}
+
+	void StartJump() {
+		for(int i=0; i < bufferedInputs.Count; i++) { // go through the input buffer and remove all jump inputs
+			if(bufferedInputs[i].InputType.Equals("jump")) {
+				bufferedInputs[i] = new BufferedInput{FramesUntilDropped = -1}; //replace this buffered input with one that will be cleared at the end of the frame
+			}
+		}
+		Instantiate(jumpParticle, transform.position, Quaternion.Euler(new Vector3(0, 0, 180)));
+		currentlyDashing = false;
+		shouldFindGround = false;
+		StartCoroutine(JumpStartTimer()); // this was implemented so that the game wouldn't eat the player's jump if they were slightly clipped into the ground
+		remainingCoyoteTime = -1; // remove the player's ability to coyote time jump until they touch the ground again
 	}
 
 	void Jump() {
-		currentlyDashing = false;
-		shouldFindGround = false;
-		Instantiate(jumpParticle, transform.position, Quaternion.Euler(new Vector3(0, 0, 180)));
-		StartCoroutine(JumpStartTimer()); // this was implemented so that the game wouldn't eat the player's jump if they were slightly clipped into the ground
-		remainingCoyoteTime = -1; // remove the player's ability to coyote time jump until they touch the ground again
+		StartJump();
 		velocity.y = jumpPower;
+		isGrounded = false;
+	}
+
+	void WallJump(int direction) {
+		StartJump();
+		velocity.y = wallJumpPower;
+		velocity.x = wallJumpPushBack * direction;
 		isGrounded = false;
 	}
 
@@ -205,6 +241,16 @@ public class Player_Controller : MonoBehaviour
 #endregion
 
 #region Physics
+	void RayCast() {
+		rayToCeiling = Physics2D.BoxCast(topCenter, verticalRaySize, 0, Vector2.up, colliderOffset, floorLayerMask);
+		rayToGround = Physics2D.BoxCast(bottomCenter, verticalRaySize, 0, Vector2.down, 100, floorLayerMask);
+		
+		rayToLeftWall = Physics2D.Raycast(leftCenter, Vector2.left, 100, floorLayerMask);
+		distanceToLeftWall = FindRayDistance(rayToLeftWall);
+		rayToRightWall = Physics2D.Raycast(rightCenter, Vector2.right, 100, floorLayerMask);
+		distanceToRightWall = FindRayDistance(rayToRightWall);
+	}
+
 	void ProcessGravity() {
 		if(shouldFindGround) { // this if statement is so that the game wouldn't eat the player's jump if they were slightly clipped into the ground
 			FindGround();
@@ -219,26 +265,28 @@ public class Player_Controller : MonoBehaviour
 
 		if(currentlyDashing) { return; }
 
-		fallSpeed = gravity; // initialize the amount the player's downward velocity should increase by
-
-		if(velocity.y <= halfGravityVelocity && velocity.y >= -halfGravityVelocity) { // if the player is at the peak of their jump
-			fallSpeed /= 2; // give them half velocity
+		downwardsAcceleration = gravity; // initialize the amount the player's downward velocity should increase by
+		targetFallSpeed = maxFallSpeed;
+		
+		if(velocity.y < 0 && ((rayToLeftWall.distance < colliderOffset && frameInput.Move.x < 0) || (rayToRightWall.distance < colliderOffset && frameInput.Move.x > 0))) {
+			targetFallSpeed = maxWallSlideVelocity;
+		}
+		else if(velocity.y <= halfGravityVelocity && velocity.y >= -halfGravityVelocity) { // if the player is at the peak of their jump
+			downwardsAcceleration /= 2; // give them half velocity
 		}
 		else if(!frameInput.JumpHeld && velocity.y > 0) { // if the player is moving upwards and is not holding a jump
-			fallSpeed *= jumpNotHeldModifier; // increase the force of gravity
+			downwardsAcceleration *= jumpNotHeldModifier; // increase the force of gravity
 		}
 		
-		velocity.y = Mathf.MoveTowards(velocity.y, -maxFallSpeed, fallSpeed);
+		velocity.y = Mathf.MoveTowards(velocity.y, -targetFallSpeed, downwardsAcceleration);
 		
 	}
 
 	void FindGround() {
-		rayToGround = Physics2D.BoxCast(bottomCenter, verticalRaySize, 0, Vector2.down, colliderOffset, floorLayerMask);
 		distanceToGround = FindRayDistance(rayToGround);
 		isGrounded = distanceToGround < colliderOffset; // if the player is close enough to the ground, mark them as grounded
 	}
 	void FindCeiling() {
-		rayToCeiling = Physics2D.BoxCast(topCenter, verticalRaySize, 0, Vector2.up, colliderOffset, floorLayerMask);
 		distanceToCeiling = FindRayDistance(rayToCeiling);
 		if(distanceToCeiling < colliderOffset && velocity.y > 0) { // if the player is touching a ceiling and is moving upwards
 			velocity.y = 0; // set their vertical velocity to 0
@@ -259,11 +307,7 @@ public class Player_Controller : MonoBehaviour
 		if(!currentlyDashing) {
 			velocity.x = Mathf.MoveTowards(velocity.x, frameInput.Move.x * walkSpeed, walkAcceleration);
 		}
-
-		rayToLeftWall = Physics2D.Raycast(leftCenter, Vector2.left, colliderOffset, floorLayerMask);
-		rayToRightWall = Physics2D.Raycast(rightCenter, Vector2.right, colliderOffset, floorLayerMask);
-
-		if((rayToRightWall.collider != null && velocity.x > 0) || (rayToLeftWall.collider != null && velocity.x < 0)) { // if the player is walking into a wall
+		if((rayToRightWall.distance < colliderOffset && velocity.x > 0) || (rayToLeftWall.distance < colliderOffset && velocity.x < 0)) { // if the player is walking into a wall
 			velocity.x = 0;
 		}
 	}
@@ -305,24 +349,29 @@ public class Player_Controller : MonoBehaviour
 			}
 		}
 
+		float preDashXInput = frameInput.Move.x;
+		// Vector2 storedVelocity = velocity; // store the current velocity of the player
 
-		velocity.x = frameInput.Move.x * dashVelocity;
-		velocity.y = 0;
-
-		Vector2 storedVelocity = velocity; // store the current velocity of the player
 		for(int i=0; i<dashStartPause; i++) { // pause for a few frames at the start of the dash to add weight to it
 			velocity = Vector2.zero;
 			yield return new WaitForEndOfFrame();
 		}
 		// Instantiate(dashGhost, transform.parent); // spawn the dash ghost sprite
-		velocity = storedVelocity; // resume movement
+		// velocity = storedVelocity; // resume movement
+		if(frameInput.Move.x == 0) {
+			velocity.x = preDashXInput * dashVelocity;
+		}
+		else{
+			velocity.x = frameInput.Move.x * dashVelocity;
+		}
+		velocity.y = 0;
 
 		StartCoroutine(DashTimer());
 	}
 	IEnumerator DashTimer() {
 		// canDashTechnique = true;
 		Vector2 colliderSize = boxCollider.size;
-		boxCollider.size = new Vector2(boxCollider.size.x, boxCollider.size.y/2);
+		boxCollider.size = new Vector2(boxCollider.size.x, boxCollider.size.y/3);
 		for (int i=0; i<dashFrames; i++) { // the number of frames the player should be dashing for
 			if (currentlyDashing == false) { // if the dash ends prematurely
 				boxCollider.size = colliderSize;
