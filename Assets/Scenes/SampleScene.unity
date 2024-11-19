@@ -1990,7 +1990,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1770885930}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Level Geomatry
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2777,11 +2777,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5850832500307229494, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 5850832500307229494, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5850832500307229494, guid: 9867b309c98c2f54e8cc79a3eab47874, type: 3}
       propertyPath: m_LocalPosition.z

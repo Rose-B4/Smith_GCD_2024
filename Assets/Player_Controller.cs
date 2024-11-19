@@ -83,6 +83,7 @@ public class Player_Controller : MonoBehaviour
 	[Header("Misc")]
 		[SerializeField] protected GameObject jumpParticle;
 		[SerializeField] protected GameObject attackObject;
+		[SerializeField] protected GameObject rangedAttackObject;
 	//---------------------------------------------------------------
 
 	// state variables-----------------------------------------------
@@ -114,7 +115,7 @@ public class Player_Controller : MonoBehaviour
 		boxCollider = GetComponent<BoxCollider2D>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
 
-		floorLayerMask = LayerMask.GetMask("Floor");
+		floorLayerMask = LayerMask.GetMask("Walls");
 	}
 
 	// Update is called once per frame
@@ -127,8 +128,9 @@ public class Player_Controller : MonoBehaviour
 		ProcessAnimation();
 		ProcessDash(); // this or ProcessAttack MUST come last in the list because it can modify the players input
 		ProcessAttack();
+		ProcessRangedAttack();
 
-		rb.velocity = velocity;
+		rb.velocity = velocity / (60*Time.deltaTime);
 
 		RemoveExpiredInputsFromBuffer();
 		if(Input.GetKey(KeyCode.Escape)) {
@@ -155,6 +157,7 @@ public class Player_Controller : MonoBehaviour
 			JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.Space), // checks if the jump button is being held
 			Move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")), // gets the user's directional input
 			AttackPressed = Input.GetButtonDown("Attack"),
+			RangedAttackPressed = Input.GetButtonDown("RangedAttack"),
 			DashPressed = Input.GetButtonDown("Dash")
 		};
 		frameInput.Move.x = Mathf.Abs(frameInput.Move.x) < stickDeadZone ? 0 : Mathf.Sign(frameInput.Move.x); // this line and the one below it add dead zones for joysticks and make inputs locked to 8 directions
@@ -194,13 +197,13 @@ public class Player_Controller : MonoBehaviour
 		if(canJump) {
 			Jump();
 		}
-		else if(rayToLeftWall.distance < distanceToWallJump && rayToRightWall.distance < distanceToWallJump) {
+		else if(distanceToLeftWall < distanceToWallJump && distanceToRightWall < distanceToWallJump) {
 			WallJump(0);
 		}
-		else if(rayToLeftWall.distance < distanceToWallJump) {
+		else if(distanceToLeftWall < distanceToWallJump) {
 			WallJump(1);
 		}
-		else if(rayToRightWall.distance < distanceToWallJump) {
+		else if(distanceToRightWall < distanceToWallJump) {
 			WallJump(-1);
 		}
 	}
@@ -233,7 +236,7 @@ public class Player_Controller : MonoBehaviour
 
 	IEnumerator JumpStartTimer() { // this was implemented so that the game wouldn't eat the player's jump if they were slightly clipped into the ground
 		for(int i=0; i<3; i++) {
-			yield return new WaitForEndOfFrame(); // wait 3 frames before checking for ground again
+			yield return new WaitForFixedUpdate(); // wait 3 frames before checking for ground again
 		}
 		shouldFindGround = true;
 	}
@@ -268,7 +271,7 @@ public class Player_Controller : MonoBehaviour
 		downwardsAcceleration = gravity; // initialize the amount the player's downward velocity should increase by
 		targetFallSpeed = maxFallSpeed;
 		
-		if(velocity.y < 0 && ((rayToLeftWall.distance < colliderOffset && frameInput.Move.x < 0) || (rayToRightWall.distance < colliderOffset && frameInput.Move.x > 0))) {
+		if(velocity.y < 0 && ((distanceToLeftWall < colliderOffset && frameInput.Move.x < 0) || (distanceToRightWall < colliderOffset && frameInput.Move.x > 0))) {
 			targetFallSpeed = maxWallSlideVelocity;
 		}
 		else if(velocity.y <= halfGravityVelocity && velocity.y >= -halfGravityVelocity) { // if the player is at the peak of their jump
@@ -307,7 +310,7 @@ public class Player_Controller : MonoBehaviour
 		if(!currentlyDashing) {
 			velocity.x = Mathf.MoveTowards(velocity.x, frameInput.Move.x * walkSpeed, walkAcceleration);
 		}
-		if((rayToRightWall.distance < colliderOffset && velocity.x > 0) || (rayToLeftWall.distance < colliderOffset && velocity.x < 0)) { // if the player is walking into a wall
+		if((distanceToRightWall < colliderOffset && velocity.x > 0) || (distanceToLeftWall < colliderOffset && velocity.x < 0)) { // if the player is walking into a wall
 			velocity.x = 0;
 		}
 	}
@@ -328,6 +331,7 @@ public class Player_Controller : MonoBehaviour
 	void ProcessDash() {
 		timeSinceLastDash ++;
 		if(isGrounded) { remainingDashes = numDashes; } // if the player is on the ground, give them their dashes back
+		if(distanceToLeftWall < distanceToWallJump || distanceToRightWall < distanceToWallJump) { remainingDashes = numDashes; } // if the player is wall sliding, give them their dashes back
 		if(!frameInput.DashPressed) { return; } // if the player didn't dash, don't dash
 		if(remainingDashes <= 0) { return; } // if the player is out of dashes, don't dash
 		if(currentlyDashing) { return; } // if the player is already dashing, don't dash
@@ -354,7 +358,7 @@ public class Player_Controller : MonoBehaviour
 
 		for(int i=0; i<dashStartPause; i++) { // pause for a few frames at the start of the dash to add weight to it
 			velocity = Vector2.zero;
-			yield return new WaitForEndOfFrame();
+			yield return new WaitForFixedUpdate();
 		}
 		// Instantiate(dashGhost, transform.parent); // spawn the dash ghost sprite
 		// velocity = storedVelocity; // resume movement
@@ -377,7 +381,7 @@ public class Player_Controller : MonoBehaviour
 				boxCollider.size = colliderSize;
 				yield break; // end the function
 			}
-			yield return new WaitForEndOfFrame();
+			yield return new WaitForFixedUpdate();
 		}
 		currentlyDashing = false; // end the dash
 		boxCollider.size = colliderSize;
@@ -414,7 +418,7 @@ public class Player_Controller : MonoBehaviour
 	// 	Vector2 storedVelocity = velocity; // store the current velocity of the player
 	// 	for(int i=0; i<dashStartPause; i++) { // pause for a few frames at the start of the dash to add weight to it
 	// 		velocity = Vector2.zero;
-	// 		yield return new WaitForEndOfFrame();
+	// 		yield return new WaitForFixedUpdate();
 	// 	}
 	// 	// Instantiate(dashGhost, transform.parent); // spawn the dash ghost sprite
 	// 	velocity = storedVelocity; // resume movement
@@ -440,6 +444,17 @@ public class Player_Controller : MonoBehaviour
 		yield return new WaitForSeconds(0.2f);
 		Destroy(attack);
 	}
+
+	void ProcessRangedAttack() {
+		if (!frameInput.RangedAttackPressed) { return; }
+
+		if(frameInput.Move.x == 0) {
+			frameInput.Move.x = spriteRenderer.flipX ? -1 : 1;
+		}
+
+		GameObject projectile = Instantiate(rangedAttackObject, transform.position, new Quaternion());
+		projectile.GetComponent<Projectile>().direction = frameInput.Move.x;
+	}
 #endregion
 
 #region Input Structs
@@ -448,6 +463,7 @@ public class Player_Controller : MonoBehaviour
 		public bool JumpHeld; // is the player currently holding the jump button
 		public Vector2 Move; // what movements did the player input
 		public bool AttackPressed; // did the player press the attack button this frame?
+		public bool RangedAttackPressed;
 		public bool DashPressed; // did the player press the dash button this frame?
 	}
 

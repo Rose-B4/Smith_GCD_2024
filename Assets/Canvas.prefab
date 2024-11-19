@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 858.866, y: 227.0136}
+  m_SizeDelta: {x: 856.3774, y: 377.5723}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &3250203631481552320
 CanvasRenderer:
@@ -65,12 +65,16 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Move - WASD or Arrows
+  m_text: 'Move - WASD
 
-    Jump - J or Z
+    Jump - Space
 
-    Dash - K or X (can be done
-    in mid air)
+    Dash - Shift
+
+    Attack - Left Click
+
+    Shoot
+    - Right Click
 
     Quit - Escape'
   m_isRightToLeft: 0
@@ -135,7 +139,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: 0, w: 0.000061035156}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
