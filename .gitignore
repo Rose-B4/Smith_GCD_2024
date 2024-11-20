@@ -1,6 +1,7 @@
 Library/
 Logs/
 Temp/
+Build/
 UserSettings/
 Assembly-CSharp.csproj
 Smith_GDC_2024.sln
