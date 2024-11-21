@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -100,7 +101,13 @@ public class Player_Controller : MonoBehaviour
 	[SerializeField] protected Vector2 velocity = new(0,0);
 	//---------------------------------------------------------------
 
-	// input containers----------------------------------------------
+
+	// input stuff---------------------------------------------------
+	InputAction moveInput;
+    InputAction jumpButton;
+	InputAction dashButton;
+	InputAction attackButton;
+	InputAction shootButton;
 	protected FrameInput frameInput = new();
 	protected List<BufferedInput> bufferedInputs = new();
 	//---------------------------------------------------------------
@@ -108,6 +115,12 @@ public class Player_Controller : MonoBehaviour
 
 #region Unity Methods
 	void Start() {
+		moveInput = InputSystem.actions.FindAction("Move");
+		jumpButton = InputSystem.actions.FindAction("Jump");
+		dashButton = InputSystem.actions.FindAction("Dash");
+		attackButton = InputSystem.actions.FindAction("Attack");
+		shootButton = InputSystem.actions.FindAction("Shoot");
+
 		QualitySettings.vSyncCount = 0; // turn off v-sync
 		Application.targetFrameRate = 60; // set the max fps
 
@@ -153,12 +166,12 @@ public class Player_Controller : MonoBehaviour
 	void GetInput() {
 		frameInput = new FrameInput{
 			// TODO: Change out for new input package______________________________________________
-			JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.Space), // checks if the jump button was pressed this frame
-			JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.Space), // checks if the jump button is being held
-			Move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")), // gets the user's directional input
-			AttackPressed = Input.GetButtonDown("Attack"),
-			RangedAttackPressed = Input.GetButtonDown("RangedAttack"),
-			DashPressed = Input.GetButtonDown("Dash")
+			JumpDown = jumpButton.WasPressedThisFrame(), // checks if the jump button was pressed this frame
+			JumpHeld = jumpButton.IsPressed(), // checks if the jump button is being held
+			Move = moveInput.ReadValue<Vector2>(), // gets the user's directional input
+			AttackPressed = attackButton.WasPressedThisFrame(),
+			RangedAttackPressed = shootButton.WasPressedThisFrame(),
+			DashPressed = dashButton.WasPressedThisFrame()
 		};
 		frameInput.Move.x = Mathf.Abs(frameInput.Move.x) < stickDeadZone ? 0 : Mathf.Sign(frameInput.Move.x); // this line and the one below it add dead zones for joysticks and make inputs locked to 8 directions
 		frameInput.Move.y = Mathf.Abs(frameInput.Move.y) < stickDeadZone ? 0 : Mathf.Sign(frameInput.Move.y);
