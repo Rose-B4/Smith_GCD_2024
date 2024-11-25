@@ -16,21 +16,27 @@ public class Enemy : MonoBehaviour
 
     protected int layerMask;
 
+    [SerializeField] protected int health = 5;
+    [SerializeField] protected int damage = 1;
     [SerializeField] protected float moveSpeed;
     [SerializeField] protected GameObject deathParticle;
 
     [SerializeField] Vector2 velocity;
-
+    Vector2 storedVelocity;
+    protected bool isPaused;
+    protected bool wasPausedLastFrame;
 
     protected Rigidbody2D rb;
     protected SpriteRenderer sprite;
+    protected Player_Controller player;
 
     virtual protected void Start() {
         velocity.x = moveSpeed;
-        // gameObject.layer = LayerMask.GetMask("Enemy");
+        gameObject.layer = LayerMask.NameToLayer("Enemy");
         layerMask = LayerMask.GetMask("Walls");
         rb = GetComponent<Rigidbody2D>();
         sprite = GetComponent<SpriteRenderer>();
+        player = FindAnyObjectByType<Player_Controller>();
     }
 
     virtual protected void FixedUpdate() {
@@ -40,22 +46,40 @@ public class Enemy : MonoBehaviour
         rightWallRay = Physics2D.Raycast(centerRight, Vector2.right, Mathf.Infinity, layerMask);
 
 
-        if((leftFloorRay.distance > 0.1f && rightFloorRay.distance < 0.1f) ||
-           (rightFloorRay.distance > 0.1f && leftFloorRay.distance < 0.1f) ||
-            leftWallRay.distance < 0.1f ||
-            rightWallRay.distance < 0.1f)
+        if ((leftFloorRay.distance > 0.1f && rightFloorRay.distance < 0.1f && velocity.x < 0) ||
+            (rightFloorRay.distance > 0.1f && leftFloorRay.distance < 0.1f && velocity.x > 0) ||
+            (leftWallRay.distance < 0.1f && velocity.x < 0 ) ||
+            (rightWallRay.distance < 0.1f && velocity.x > 0))
         {
             velocity.x *= -1;
             sprite.flipX = ! sprite.flipX;
         }
 
-        rb.velocity = new Vector3(velocity.x, rb.velocity.y) / (60*Time.deltaTime);
+        isPaused = player.inImpactFrames;
+        if(!isPaused && !wasPausedLastFrame) {
+            rb.velocity = new Vector3(velocity.x, rb.velocity.y) / (60*Time.deltaTime);
+        }
+        else if(!isPaused && wasPausedLastFrame) {
+            rb.velocity = storedVelocity;
+        }
+        else if(isPaused && !wasPausedLastFrame) {
+            storedVelocity = rb.velocity;
+            rb.velocity = Vector3.zero;
+        }
+        else if(isPaused && wasPausedLastFrame) {
+            rb.velocity = Vector3.zero;
+        }
+
+        wasPausedLastFrame = isPaused;
     }
 
-    virtual protected void OnTriggerEnter2D(Collider2D other) {
+    virtual protected void OnTriggerStay2D(Collider2D other) {
         if(other.tag == "Player_Attack") {
             Instantiate(deathParticle, transform.position, Quaternion.Euler(0,0,180));
             Destroy(gameObject);
+        }
+        else if(other.tag == "Player") {
+            other.GetComponent<Player_Controller>().TakeDamage(damage);
         }
     }
 }

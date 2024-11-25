@@ -6,6 +6,8 @@ MonoImporter:
   defaultReferences:
   - jumpParticle: {fileID: 8253412017663591503, guid: 0a3441ec61b5e23469280818f9884983, type: 3}
   - attackObject: {fileID: 469389493263449764, guid: 0be4ab002d1c94a4ab94a79e75954d3d, type: 3}
+  - rangedAttackObject: {fileID: 3658397862403110816, guid: 2f12d99e58d663c4aaee0781aff082e0, type: 3}
+  - takeDamageParticle: {fileID: 8253412017663591503, guid: 323b124c8c19681458df20febf42ac71, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
